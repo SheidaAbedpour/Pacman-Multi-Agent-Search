@@ -20,7 +20,7 @@ from game import Agent
 from pacman import GameState
 
 
-# python pacman.py -p AIAgent -k 1 -n 1 -a depth=2
+# python pacman.py -p AIAgent -k 1 -n 1 -a depth=4
 
 
 
@@ -64,11 +64,9 @@ class AIAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
 
-        def max_level(gameState, curr_depth, agentIndex=0):
+        def max_level(gameState, depth, alpha, beta, agentIndex=0):
 
-            curr_depth = curr_depth + 1
-
-            if gameState.isWin() or gameState.isLose() or curr_depth == self.depth:
+            if gameState.isWin() or gameState.isLose() or depth == self.depth:
                 return scoreEvaluationFunction(currentGameState=gameState)
 
             max_value = float('-inf')
@@ -76,11 +74,16 @@ class AIAgent(MultiAgentSearchAgent):
             legal_actions = gameState.getLegalActions(agentIndex=agentIndex)
             for action in legal_actions:
                 successor = gameState.generateSuccessor(agentIndex=agentIndex, action=action)
-                max_value = max(max_value, min_level(gameState=successor, depth=curr_depth, agentIndex=1))
+                max_value = max(max_value, min_level(gameState=successor, depth=depth + 1,
+                                                     alpha=alpha, beta=beta, agentIndex=1))
+
+                alpha = max(alpha, max_value)
+                if alpha >= beta:
+                    break
 
             return max_value
 
-        def min_level(gameState, depth, agentIndex):
+        def min_level(gameState, depth, alpha, beta, agentIndex):
 
             if gameState.isWin() or gameState.isLose():
                 return scoreEvaluationFunction(currentGameState=gameState)
@@ -90,24 +93,29 @@ class AIAgent(MultiAgentSearchAgent):
             legal_actions = gameState.getLegalActions(agentIndex=agentIndex)
             for action in legal_actions:
                 successor = gameState.generateSuccessor(agentIndex=agentIndex, action=action)
-                min_value = min(min_value, max_level(gameState=successor, curr_depth=depth))
+                min_value = min(min_value, max_level(gameState=successor, depth=depth,
+                                                     alpha=alpha, beta=beta))
+                beta = min(beta, min_value)
+                if alpha >= beta:
+                    break
 
             return min_value
 
-
-        curr_score = float('-inf')
         return_action = ''
         agent_index = 0
         ghost_index = 1
         depth = 0
 
+        alpha = float('-inf')
+        beta = float('inf')
+
         legal_actions = gameState.getLegalActions(agentIndex=agent_index)
         for action in legal_actions:
             successor = gameState.generateSuccessor(agentIndex=agent_index, action=action)
-            score = min_level(successor, depth=depth, agentIndex=ghost_index)
+            score = min_level(successor, depth=depth, alpha=alpha, beta=beta, agentIndex=ghost_index)
 
-            if score > curr_score:
+            if score >= alpha:
                 return_action = action
-                curr_score = score
+                alpha = score
 
         return return_action
