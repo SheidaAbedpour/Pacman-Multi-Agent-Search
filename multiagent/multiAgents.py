@@ -20,6 +20,10 @@ from game import Agent
 from pacman import GameState
 
 
+# python pacman.py -p AIAgent -k 1 -n 1 -a depth=2
+
+
+
 def scoreEvaluationFunction(currentGameState: GameState):
     """
     This default evaluation function just returns the score of the state.
@@ -60,5 +64,47 @@ class AIAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
 
-        # TODO: Your code goes here
-        # util.raiseNotDefined()
+        def max_level(gameState, curr_depth, agentIndex=0):
+
+            curr_depth = curr_depth + 1
+
+            if gameState.isWin() or gameState.isLose() or curr_depth == self.depth:
+                return scoreEvaluationFunction(currentGameState=gameState)
+
+            max_value = float('-inf')
+
+            legal_actions = gameState.getLegalActions(agentIndex=agentIndex)
+            for action in legal_actions:
+                successor = gameState.generateSuccessor(agentIndex=agentIndex, action=action)
+                max_value = max(max_value, min_level(gameState=successor, depth=curr_depth, agentIndex=1))
+
+            return max_value
+
+        def min_level(gameState, depth, agentIndex):
+
+            if gameState.isWin() or gameState.isLose():
+                return scoreEvaluationFunction(currentGameState=gameState)
+
+            min_value = float('inf')
+
+            legal_actions = gameState.getLegalActions(agentIndex=agentIndex)
+            for action in legal_actions:
+                successor = gameState.generateSuccessor(agentIndex=agentIndex, action=action)
+                min_value = min(min_value, max_level(gameState=successor, curr_depth=depth))
+
+            return min_value
+
+
+        curr_score = float('-inf')
+        return_action = ''
+
+        legal_actions = gameState.getLegalActions(0)
+        for action in legal_actions:
+            successor = gameState.generateSuccessor(agentIndex=0, action=action)
+            score = min_level(successor, depth=0, agentIndex=1)
+
+            if score > curr_score:
+                return_action = action
+                curr_score = score
+
+        return return_action
