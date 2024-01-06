@@ -77,9 +77,9 @@ class AIAgent(MultiAgentSearchAgent):
                 max_value = max(max_value, min_level(gameState=successor, depth=depth + 1,
                                                      alpha=alpha, beta=beta, agentIndex=1))
 
-                alpha = max(alpha, max_value)
-                if alpha >= beta:
+                if max_value >= beta:
                     break
+                alpha = max(alpha, max_value)
 
             return max_value
 
@@ -95,9 +95,9 @@ class AIAgent(MultiAgentSearchAgent):
                 successor = gameState.generateSuccessor(agentIndex=agentIndex, action=action)
                 min_value = min(min_value, max_level(gameState=successor, depth=depth,
                                                      alpha=alpha, beta=beta))
-                beta = min(beta, min_value)
-                if alpha >= beta:
+                if min_value <= alpha:
                     break
+                beta = min(beta, min_value)
 
             return min_value
 
