@@ -20,7 +20,7 @@ from game import Agent
 from pacman import GameState
 
 
-# python pacman.py -p AIAgent -k 1 -n 1 -a depth=4
+# python pacman.py -p AIAgent -k 1 -n 5 -a depth=3
 
 
 
@@ -31,7 +31,8 @@ def scoreEvaluationFunction(currentGameState: GameState):
 
     This evaluation function is meant for use with adversarial search agents
     """
-    return currentGameState.getScore()
+    # return currentGameState.getScore()
+    return betterEvaluationFunction(currentGameState)
 
 
 class MultiAgentSearchAgent(Agent):
@@ -78,7 +79,7 @@ class AIAgent(MultiAgentSearchAgent):
                                                      alpha=alpha, beta=beta, agentIndex=1))
 
                 if max_value >= beta:
-                    break
+                    return max_value
                 alpha = max(alpha, max_value)
 
             return max_value
@@ -96,7 +97,7 @@ class AIAgent(MultiAgentSearchAgent):
                 min_value = min(min_value, max_level(gameState=successor, depth=depth,
                                                      alpha=alpha, beta=beta))
                 if min_value <= alpha:
-                    break
+                    return min_value
                 beta = min(beta, min_value)
 
             return min_value
@@ -104,18 +105,66 @@ class AIAgent(MultiAgentSearchAgent):
         return_action = ''
         agent_index = 0
         ghost_index = 1
-        depth = 0
+        initial_depth = 0
 
-        alpha = float('-inf')
-        beta = float('inf')
+        alpha = float('-inf')   # max's best option on path to root
+        beta = float('inf')     # min's best option on path to root
 
         legal_actions = gameState.getLegalActions(agentIndex=agent_index)
         for action in legal_actions:
             successor = gameState.generateSuccessor(agentIndex=agent_index, action=action)
-            score = min_level(successor, depth=depth, alpha=alpha, beta=beta, agentIndex=ghost_index)
+            score = min_level(successor, depth=initial_depth, alpha=alpha, beta=beta, agentIndex=ghost_index)
 
             if score >= alpha:
                 return_action = action
                 alpha = score
 
         return return_action
+
+    
+def betterEvaluationFunction(currentGameState):
+
+    score_state = currentGameState.getScore()
+
+    pacman_position = currentGameState.getPacmanPosition()
+
+    ghosts_positions = currentGameState.getGhostPositions()
+    ghosts_distance = [manhattanDistance(pacman_position, ghost_position) for ghost_position in ghosts_positions]
+
+    foods_available = currentGameState.getFood().asList()
+    foods_distance = [manhattanDistance(pacman_position, food_position) for food_position in foods_available]
+
+    capsules_available = currentGameState.getCapsules()
+    capsules_distance = [manhattanDistance(pacman_position, capsule_position) for capsule_position in capsules_available]
+
+    score_food = 0
+    if len(foods_available) != 0:
+        avg_foods_distances = sum(foods_distance) / len(foods_available)
+        closest_food = min(foods_distance)
+        score_food = 0.7 * closest_food + 0.3 * avg_foods_distances
+
+    score_capsule = 0
+    if len(capsules_distance) != 0:
+        closest_capsule = min(capsules_distance)
+        ghost_capsule_distances = [manhattanDistance(ghost_position, capsule_position) for ghost_position, capsule_position
+                                   in zip(ghosts_positions, capsules_available)]
+        avg_ghost_capsule_distance = sum(ghost_capsule_distances) / len(ghost_capsule_distances)
+        score_capsule = 0.8 * avg_ghost_capsule_distance + 0.2 * closest_capsule
+
+    avg_ghost_distance = sum(ghosts_distance) / len(ghosts_distance)
+    score_ghost = avg_ghost_distance
+
+    features = [score_food,
+                score_capsule,
+                score_ghost,
+                score_state]
+
+    weights = [20,
+               30,
+               -100,
+               200]
+
+    estimate_score = sum([weight * feature for weight, feature in zip(weights, features)])
+
+    return estimate_score
+
