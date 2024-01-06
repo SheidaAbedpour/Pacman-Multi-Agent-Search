@@ -97,11 +97,14 @@ class AIAgent(MultiAgentSearchAgent):
 
         curr_score = float('-inf')
         return_action = ''
+        agent_index = 0
+        ghost_index = 1
+        depth = 0
 
-        legal_actions = gameState.getLegalActions(0)
+        legal_actions = gameState.getLegalActions(agentIndex=agent_index)
         for action in legal_actions:
-            successor = gameState.generateSuccessor(agentIndex=0, action=action)
-            score = min_level(successor, depth=0, agentIndex=1)
+            successor = gameState.generateSuccessor(agentIndex=agent_index, action=action)
+            score = min_level(successor, depth=depth, agentIndex=ghost_index)
 
             if score > curr_score:
                 return_action = action
