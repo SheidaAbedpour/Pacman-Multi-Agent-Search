@@ -15,6 +15,7 @@
 from util import manhattanDistance
 from game import Directions
 import random, util
+from sklearn.preprocessing import MinMaxScaler
 
 from game import Agent
 from pacman import GameState
@@ -30,8 +31,8 @@ def scoreEvaluationFunction(currentGameState: GameState):
 
     This evaluation function is meant for use with adversarial search agents
     """
-    return currentGameState.getScore()
-    # return better_evaluation_function(currentGameState)
+    # return currentGameState.getScore()
+    return betterEvaluationFunction(currentGameState=currentGameState)
 
 
 class MultiAgentSearchAgent(Agent):
@@ -94,11 +95,11 @@ class AIAgent(MultiAgentSearchAgent):
             for action in legal_actions:
                 successor = gameState.generateSuccessor(agentIndex=agentIndex, action=action)
 
-                if agentIndex == gameState.getNumAgents() - 1:
+                if agentIndex == (gameState.getNumAgents() - 1):
                     min_value = min(min_value, max_level(gameState=successor, depth=depth, alpha=alpha, beta=beta))
                 else:
                     min_value = min(min_value, min_level(gameState=gameState, depth=depth, alpha=alpha, beta=beta,
-                                                         agentIndex=agentIndex + 1))
+                                                         agentIndex=(agentIndex + 1)))
 
                 if min_value < alpha:
                     return min_value
@@ -131,14 +132,8 @@ class AIAgent(MultiAgentSearchAgent):
 
         return return_action
 
-    
-def better_evaluation_function(currentGameState):
 
-    if currentGameState.isWin():
-        return float("inf")
-    if currentGameState.isLose():
-        return float("-inf")
-
+def betterEvaluationFunction(currentGameState: GameState):
     score_state = currentGameState.getScore()
 
     pacman_position = currentGameState.getPacmanPosition()
@@ -149,31 +144,26 @@ def better_evaluation_function(currentGameState):
     ghost_index = 1
     for ghost in currentGameState.getGhostStates():
         if ghost.scaredTimer == 0:
-            ghosts_distance += [manhattanDistance(pacman_position,
-                                                  currentGameState.getGhostPosition(ghost_index))]
+            ghosts_distance.append([manhattanDistance(pacman_position,
+                                                      currentGameState.getGhostPosition(ghost_index))])
         else:
-            scared_ghosts_distance += [manhattanDistance(pacman_position,
-                                                         currentGameState.getGhostPosition(ghost_index))]
+            scared_ghosts_distance.append([manhattanDistance(pacman_position,
+                                                             currentGameState.getGhostPosition(ghost_index))])
         ghost_index += 1
 
     foods_available = currentGameState.getFood().asList()
     foods_distance = [manhattanDistance(pacman_position, food_position)
                       for food_position in foods_available]
-    num_foods = currentGameState.getNumFood()
 
     capsules_available = currentGameState.getCapsules()
     capsules_distance = [manhattanDistance(pacman_position, capsule_position)
                          for capsule_position in capsules_available]
-    num_capsules = len(capsules_available)
 
     score_food = 0
     if len(foods_available) != 0:
         avg_foods_distances = sum(foods_distance) / len(foods_available)
         closest_food = min(foods_distance)
-        if len(ghosts_distance) > 0 and (min(ghosts_distance) < 3 or avg_foods_distances < 3):
-            score_food = -1000
-        else:
-            score_food = (0.9 * closest_food + 0.1 * avg_foods_distances) + (-10) * num_foods
+        score_food = 0.8 * closest_food + 0.2 * avg_foods_distances
 
     score_capsule = 0
     if len(capsules_distance) != 0:
@@ -182,29 +172,31 @@ def better_evaluation_function(currentGameState):
                                    for ghost_position, capsule_position
                                    in zip(ghosts_positions, capsules_available)]
         avg_ghost_capsule_distance = sum(ghost_capsule_distances) / len(ghost_capsule_distances)
-        score_capsule = (0.7 * (avg_ghost_capsule_distance - sum(ghosts_distance)) + 0.3 * closest_capsule) + \
-                        (-10) * num_capsules
+        score_capsule = 0.9 * avg_ghost_capsule_distance + 0.1 * closest_capsule
 
-    score_ghost = 0
-    score_scared_ghost = 0
+    closest_ghost = 0
+    closest_scared_ghost = 0
     if len(ghosts_distance) != 0:
-        score_ghost = min(ghosts_distance)
+        closest_ghost = min([distance[0] for distance in ghosts_distance])
     if len(scared_ghosts_distance) != 0:
-        score_scared_ghost = min(scared_ghosts_distance)
+        closest_scared_ghost = min([distance[0] for distance in scared_ghosts_distance])
 
-    sum_x_ghosts_position = 0
-    sum_y_ghosts_position = 0
-    for ghost in ghosts_positions:
-        x, y = ghost
-        sum_x_ghosts_position += x
-        sum_y_ghosts_position += y
-    avg_x_ghosts_position = sum_x_ghosts_position / len(ghosts_positions)
-    avg_y_ghosts_position = sum_y_ghosts_position / len(ghosts_positions)
+    score_ghost = 0.2 * sum([distance[0] for distance in ghosts_distance]) + 0.8 * closest_ghost
+    score_scared_ghost = closest_scared_ghost
 
-    x_pacman_position, y_pacman_position = pacman_position
-    if abs(x_pacman_position - avg_x_ghosts_position) <= 2\
-            and abs(y_pacman_position - avg_y_ghosts_position) <= 2:
-        score_ghost = 100
+    # sum_x_ghosts_position = 0
+    # sum_y_ghosts_position = 0
+    # for ghost in ghosts_positions:
+    #     x, y = ghost
+    #     sum_x_ghosts_position += x
+    #     sum_y_ghosts_position += y
+    # avg_x_ghosts_position = sum_x_ghosts_position / len(ghosts_positions)
+    # avg_y_ghosts_position = sum_y_ghosts_position / len(ghosts_positions)
+    #
+    # x_pacman_position, y_pacman_position = pacman_position
+    # if abs(x_pacman_position - avg_x_ghosts_position) <= 2 \
+    #         and abs(y_pacman_position - avg_y_ghosts_position) <= 2:
+    #     score_ghost = float('-inf')
 
     features = [score_food,
                 score_capsule,
@@ -212,12 +204,38 @@ def better_evaluation_function(currentGameState):
                 score_scared_ghost,
                 score_state]
 
-    weights = [10,
-               15,
-               -2000,
-               100,
-               1000]
+    weight_food = 5
+    weight_capsule = 15
+    weight_ghost = -200
+    weight_scared_ghost = 200
+    weight_state = 500
+
+    weights = [weight_food,
+               weight_capsule,
+               weight_ghost,
+               weight_scared_ghost,
+               weight_state]
 
     estimate_score = sum([weight * feature for weight, feature in zip(weights, features)])
 
     return estimate_score
+
+
+"""""
+python pacman.py -p AIAgent -k 1 -n 10 -a 
+depth=3
+Pacman emerges victorious! Score: 1455
+Pacman emerges victorious! Score: 1707
+Pacman emerges victorious! Score: 1688
+Pacman emerges victorious! Score: 1457
+Pacman emerges victorious! Score: 1580
+Pacman emerges victorious! Score: 1721
+Pacman emerges victorious! Score: 1596
+Pacman emerges victorious! Score: 1493
+Pacman emerges victorious! Score: 1505
+Pacman emerges victorious! Score: 1495
+Average Score: 1569.7
+Scores:        1455.0, 1707.0, 1688.0, 1457.0, 1580.0, 1721.0, 1596.0, 1493.0, 1505.0, 1495.0
+Win Rate:      10/10 (1.00)
+Record:        Win, Win, Win, Win, Win, Win, Win, Win, Win, Win
+"""""
