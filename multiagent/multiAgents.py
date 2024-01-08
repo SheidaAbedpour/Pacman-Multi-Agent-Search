@@ -98,7 +98,7 @@ class AIAgent(MultiAgentSearchAgent):
                 if agentIndex == (gameState.getNumAgents() - 1):
                     min_value = min(min_value, max_level(gameState=successor, depth=depth, alpha=alpha, beta=beta))
                 else:
-                    min_value = min(min_value, min_level(gameState=gameState, depth=depth, alpha=alpha, beta=beta,
+                    min_value = min(min_value, min_level(gameState=successor, depth=depth, alpha=alpha, beta=beta,
                                                          agentIndex=(agentIndex + 1)))
 
                 if min_value < alpha:
