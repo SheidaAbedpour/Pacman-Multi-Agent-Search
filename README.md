@@ -41,6 +41,8 @@ python pacman.py -p AIAgent -k 1 -n 10 -a depth=4 -g DirectionalGhost
 "Pacman" is a classic arcade game that was first released in 1980 by Namco (Japanese video game developer). It was designed by Toru Iwatani and became one of the most iconic and enduring video games in history. The game has been widely ported to numerous platforms and has inspired many variations and adaptations.
 The main objective of Pacman is to navigate a maze, consume all the pellets, and avoid or eat ghosts. The player aims to achieve the highest score possible.
 
+![environment](Pacman-Environment.PNG)
+
 ### Rules 📜
 - Eating Pellets: Pacman moves through the maze, eating pellets along the way. Each pellet eaten adds points to the player's score.
 - Avoiding Ghosts: Ghosts move throughout the maze, trying to catch Pacman. If a ghost catches Pacman, Pacman loses a life.
